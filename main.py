@@ -3,8 +3,7 @@ from os import listdir,chdir
 from importlib.machinery import SourceFileLoader
 
 tts = tts()
-#inp = detection().run()
-inp = "test"
+inp = detection().run()
 print(inp)
 
 chdir(r"func")
@@ -19,9 +18,5 @@ for i in functions:
     output = False
     for i in function.activators:
         if inp == i:
-            output = function.func(inp, tts)
-    if output == True:
-        pass        
+            function.func(inp, tts)
     current += 1
-if output == False:
-    tts.say("Sorry, i don't have that function")
