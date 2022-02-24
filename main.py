@@ -6,17 +6,17 @@ tts = tts()
 inp = detection().run()
 print(inp)
 
-chdir(r"func")
+chdir(r'func')
 
-files = listdir()
-funcfiles = [s.removeprefix("__pycache__") for s in files]
-functions = [s.removesuffix(".py") for s in funcfiles]
+funcfiles = listdir()
+funcfiles.remove('__pycache__')
+functions = [s.removesuffix('.py') for s in funcfiles]
 current = 0
 
 for i in functions:
     function = SourceFileLoader(i,funcfiles[current]).load_module()
     output = False
     for i in function.activators:
-        if inp == i:
-            function.func(inp, tts)
+        if inp == i and output == False:
+            output = function.func(inp, tts)
     current += 1
