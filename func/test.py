@@ -1,5 +1,6 @@
 #!/bin/python
-activators = ['test','testing']
+activators = ['test', 'testuj']
+platforms = ['all']
 
-def func(inp,tts):
-    tts.say("Failure... Just Kidding! Working flawlessly")
+def func(inp, lib):
+    lib.say("Pomyślnie zrozumiano i wykonano polecenie!")
