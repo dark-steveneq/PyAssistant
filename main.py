@@ -1,4 +1,4 @@
-from os import listdir, chdir
+from os import listdir, chdir, system
 from sys import platform, argv
 from importlib.machinery import SourceFileLoader
 from time import sleep
@@ -18,7 +18,10 @@ class lib:
     def args_init(self):
         self.args = argv[:1]
         if self.args_contains('-h','--help'):
+            self.sr_usesrecognition = False
+            self.config_usesdefaults = True
             self.args_help()
+            exit(0)
         else:
             if self.args_contains('-D','--debug'):
                 self.sr_usesrecognition = False
@@ -58,26 +61,33 @@ class lib:
 ###Text To Speech###
     # init
     def tts_init(self):
-        self.tts = tts_init()
-        if self.config_usesdefaults == False:
-            if config.tts_voice != None:
-                self.tts.setProperty('voice', config.tts_voice)
-            self.tts.setProperty('rate', config.tts_rate)
-            self.tts.setProperty('volume', config.tts_volume)
-        elif self.config_usesdefaults == True:
-            self.tts.setProperty('rate', 125)
-            self.tts.setProperty('volume', 1.0)
+        if platform != 'linux':
+            self.tts = tts_init()
+            if self.config_usesdefaults == False:
+                if config.tts_voice != None:
+                    self.tts.setProperty('voice', config.tts_voice)
+                self.tts.setProperty('rate', config.tts_rate)
+                self.tts.setProperty('volume', config.tts_volume)
 
     # function for saying
     def say(self, string):
         print('> %s' %(string))
-        self.tts.say(string)
-        self.tts.runAndWait()
+        if self.platform != 'linux':
+            self.tts.say(string)
+            self.tts.runAndWait()
+        elif self.platform == 'linux':
+            if self.config_usesdefaults:
+                system('espeak -r 125 "%s"' %(string))
+            elif self.config_usesdefaults == False:
+                if config.tts_voice != None:
+                    system('espeak -r %i "%s"' %(config.tts_rate, string))
+                else:
+                    system('espeak -r %i -v %s "%s"' %(config.tts_rate, config.tts_voice, string))
 
 ###Speech Recognition###
     # init
     def sr_init(self):
-        if self.sr_usesrecognition:
+        if self.sr_usesrecognition == True:
             self.sr_r = sr.Recognizer()
             if self.config_usesdefaults == False:
                 if config.sr_mic == None:
@@ -86,6 +96,8 @@ class lib:
                     self.sr_mic = sr.Microphone(device_index=config.sr_mic)
             elif self.config_uses_defaults == True:
                 self.sr_mic = sr.Microphone()
+        elif self.sr_usesrecognition == False:
+            self.sr_r = ""
 
     # function for configuring what microphone to use
     def sr_config(self):
@@ -97,7 +109,7 @@ class lib:
 
     # function for running recognition
     def recognize(self):
-        if self.sr_usesrecognition:
+        if self.sr_usesrecognition == True:
             self.sr_record = self.sr_r.listen(self.sr_mic)
             return self.sr_r.recognize_google(self.sr_record, lang='pl_PL')
         elif self.sr_usesrecognition == False:
@@ -121,6 +133,7 @@ class main:
         #    self.daemon()
         #else:
         #    self.func()
+        self.func_recognized = lib.recognize()
         self.func()
 
     # running functions
@@ -134,10 +147,10 @@ class main:
             self.func_currentfunc = SourceFileLoader(x,self.func_availablefunc[self.func_current]).load_module()
             self.func_executed = False
             for x in self.func_currentfunc.activators:
-                if lib.recognize() == x and self.func_executed == False:
+                if self.func_recognized == x and self.func_executed == False:
                     for x in self.func_currentfunc.platforms:
                         if x == lib.platform() or x == 'all':
-                            self.func_executed = self.func_currentfunc.func(lib.recognize(), lib)
+                            self.func_executed = self.func_currentfunc.func(self.func_recognized, lib)
                             self.func_current += 1
 
     # running daemons
