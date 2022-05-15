@@ -5,12 +5,22 @@ from time import sleep
 from pyttsx3 import init as tts_init
 import speech_recognition as sr
 
+###Config Handling###
+try:
+    import config
+except:
+    config = open('config.py','w')
+    if platform == 'linux' or 'linux2':
+        config.write('tts_voice = None\ntts_rate = 125\nsr_mic = None')
+    else:
+        config.write('tts_voice = None\ntts_rate = 170\nsr_mic = None')
+    config.close()
+
 ###Library###
 class lib:
     # init
     def __init__(self):
         self.args_init()
-        self.config_init()
         self.tts_init()
 
 ###Arguments###
@@ -18,17 +28,16 @@ class lib:
     def args_init(self):
         self.args = argv[:1]
         if self.args_contains('-h','--help'):
-            self.sr_usesrecognition = False
-            self.config_usesdefaults = True
+            self.debug_enabled = True
             self.args_help()
             exit(0)
         else:
             if self.args_contains('-D','--debug'):
-                self.sr_usesrecognition = False
+                self.debug_enabled = True
             elif self.args_contains('-n','--normal'):
-                self.sr_usesrecognition = True
+                self.debug_enabled = False
             else:
-                self.sr_usesrecognition = True
+                self.debug_enabled = False
 
     # help
     def args_help(self):
@@ -46,28 +55,17 @@ class lib:
         else:
             return False
 
-###Config Handling###
-    # init
-    def config_init(self):
-        try:
-            import config
-            self.config_usesdefaults = False
-        except:
-            self.config_file = open('config.py','w')
-            self.config_file.write('tts_voice = None\ntts_rate = 125\ntts_volume = 1.0\nsr_mic = None')
-            self.config_file.close()
-            self.config_usesdefaults = True
-
 ###Text To Speech###
     # init
     def tts_init(self):
         if platform != 'linux':
             self.tts = tts_init()
-            if self.config_usesdefaults == False:
+            try:
                 if config.tts_voice != None:
                     self.tts.setProperty('voice', config.tts_voice)
                 self.tts.setProperty('rate', config.tts_rate)
-                self.tts.setProperty('volume', config.tts_volume)
+            except:
+                pass
 
     # function for saying
     def say(self, string):
@@ -76,28 +74,25 @@ class lib:
             self.tts.say(string)
             self.tts.runAndWait()
         elif self.platform == 'linux':
-            if self.config_usesdefaults:
-                system('espeak -r 125 "%s"' %(string))
-            elif self.config_usesdefaults == False:
+            try:
                 if config.tts_voice != None:
                     system('espeak -r %i "%s"' %(config.tts_rate, string))
                 else:
                     system('espeak -r %i -v %s "%s"' %(config.tts_rate, config.tts_voice, string))
+            except:
+                system('espeak -r 125 "%s"' %(string))
 
 ###Speech Recognition###
     # init
     def sr_init(self):
-        if self.sr_usesrecognition == True:
-            self.sr_r = sr.Recognizer()
-            if self.config_usesdefaults == False:
-                if config.sr_mic == None:
-                    self.sr_mic = sr.Microphone()
-                else:
-                    self.sr_mic = sr.Microphone(device_index=config.sr_mic)
-            elif self.config_uses_defaults == True:
+        self.sr_r = sr.Recognizer()
+        try:
+            if config.sr_mic == None:
                 self.sr_mic = sr.Microphone()
-        elif self.sr_usesrecognition == False:
-            self.sr_r = ""
+            else:
+                 self.sr_mic = sr.Microphone(device_index=config.sr_mic)
+        except:
+            self.sr_mic = sr.Microphone()
 
     # function for configuring what microphone to use
     def sr_config(self):
@@ -109,11 +104,13 @@ class lib:
 
     # function for running recognition
     def recognize(self):
-        if self.sr_usesrecognition == True:
+        print(self.debug_enabled)
+        if self.debug_enabled == True:
+            return str(input('< '))
+            pass
+        elif self.debug_enabled == False:
             self.sr_record = self.sr_r.listen(self.sr_mic)
             return self.sr_r.recognize_google(self.sr_record, lang='pl_PL')
-        elif self.sr_usesrecognition == False:
-            return str(input('< '))
 
 ###Misc. Functions###
     # easly identifiable platform
